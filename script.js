@@ -381,6 +381,31 @@ jQuery(function ($) {
     });
 });
 
+
+/* Icons in Header should have display block.
+ * Otherwise, in case of inline-block there's a space gap in some browsers (Opera 12.16) and icon is cutted.
+ */
+if (browser.opera) {
+    jQuery(function ($) {
+        $(".art-header a[class$='tag-icon']").css("display", "block");
+    });
+}
+
+jQuery(function($) {
+    "use strict";
+     $(window).bind("resize", function () {
+        /*global responsiveDesign */
+        "use strict";
+        if (typeof responsiveDesign !== "undefined" && responsiveDesign.isResponsive)
+            return;
+        var sheetLeft = $(".art-sheet").offset().left;
+        $("header.art-header #art-flash-area").each(function () {
+            var object = $(this);
+            object.css("left", sheetLeft + "px");
+        });
+    });
+});
+
 jQuery(function($) {
     "use strict";
     $('nav.art-nav').addClass("desktop-nav");
@@ -483,30 +508,81 @@ var setHMenuOpenDirection = (function ($) {
 })(jQuery);
 
 
-
-/* Icons in Header should have display block.
- * Otherwise, in case of inline-block there's a space gap in some browsers (Opera 12.16) and icon is cutted.
- */
-if (browser.opera) {
-    jQuery(function ($) {
-        $(".art-header a[class$='tag-icon']").css("display", "block");
-    });
-}
-
-jQuery(function($) {
+var menuExtendedCreate = (function ($) {
     "use strict";
-     $(window).bind("resize", function () {
-        /*global responsiveDesign */
-        "use strict";
-        if (typeof responsiveDesign !== "undefined" && responsiveDesign.isResponsive)
-            return;
-        var sheetLeft = $(".art-sheet").offset().left;
-        $("header.art-header #art-flash-area").each(function () {
-            var object = $(this);
-            object.css("left", sheetLeft + "px");
+    return function () {
+        var sheet = $(".art-sheet");
+        var sheetLeft = sheet.offset().left;
+        var sheetWidth = sheet.width();
+        // reset
+        $("#art-menu-style").remove();
+
+        var styleStr = "";
+        $("<style id=\"art-menu-style\"></style>").appendTo('head');
+        var style = document.styleSheets[document.styleSheets.length - 1];
+
+        $(".art-hmenu>li").each(function(i, v) {
+            var itm = $(this);
+            var subm = itm.children("ul");
+            if (subm.length === 0) {
+                return;
+            }
+
+            // reset
+            itm.removeClass("ext ext-r ext-l");
+            itm.css("width", "").find(".ext-off,.ext-m,.ext-l,.ext-r").remove();
+            subm.children("li").children("a").css("width", "");
+
+            var lw = 0, rw = 0;
+        
+            if (typeof subm.attr("data-ext-l") !== "undefined" && typeof subm.attr("data-ext-r") !== "undefined") {
+                lw = parseInt(subm.attr("data-ext-l"), 10) + 3;
+                rw = parseInt(subm.attr("data-ext-r"), 10) + 3;
+                itm.addClass("ext-r").addClass("ext-l");
+            } else {
+                var ltr = !subm.hasClass("art-hmenu-right-to-left");
+                itm.addClass(ltr ? "ext-r" : "ext-l");
+            }
+
+            var shadow = 3;
+            if (subm.length > 0) {
+                var lnk = itm.children("a");
+                var lnkWidth = lnk.outerWidth(false);
+                itm.css("width", Math.round(parseFloat(lnkWidth, 10)) + "px");
+                var menubarMargin = 4 * 2; // margin * 2 sides
+                var menubarBorder = 0 * 2; // border 1 side
+                var submWidth = subm.width() + shadow + menubarMargin + menubarBorder;
+                var w = submWidth - lnkWidth;
+                $("<div class=\"ext-off\"></div>").insertBefore(lnk);
+                $("<div class=\"ext-m\"></div>").insertBefore(lnk);
+                if (w < 0) {
+                    var submA = subm.children("li").children("a");
+                    var pL = parseInt(submA.css("padding-left").replace("px", ""), 10) || 0;
+                    var pR = parseInt(submA.css("padding-right").replace("px", ""), 10) || 0;
+                    var bL = parseInt(submA.css("border-left").replace("px", ""), 10) || 0;
+                    var bR = parseInt(submA.css("border-right").replace("px", ""), 10) || 0;
+                    subm.children("li").children("a").css("width", (lnkWidth - pL - pR - bL - bR) + "px");
+                    submWidth = subm.width() + shadow + menubarMargin + menubarBorder;
+                    w = submWidth - lnkWidth;
+                }
+                $("<div class=\"ext-l\" style=\"width: " + (lw > 0 ? lw : Math.round(parseFloat(w, 10))) + "px;\"></div>").insertBefore(lnk);
+                $("<div class=\"ext-r\" style=\"width: " + (rw > 0 ? rw : Math.round(parseFloat(w, 10))) + "px;\"></div>").insertBefore(lnk);
+                itm.addClass("ext");
+                if (style !== null && typeof style.insertRule !== "undefined") {
+                    var cls = "art-hmenu-item-" + i;
+                    var selector = ".desktop ul.art-hmenu>li." + cls + ":hover>ul:before";
+                    var r = submWidth;
+                    var b = subm.height() + (shadow * 2) + menubarBorder + menubarMargin;
+                    var rule = "clip: rect(7px, " + Math.round(parseFloat(r, 10)) + "px, " + Math.round(parseFloat(b, 10)) + "px, -" + shadow + "px);";
+                    itm.addClass(cls);
+                    var rulesLen = typeof style.cssRules === "undefined" || style.cssRules === null ? 0 : style.cssRules.length;
+                    style.insertRule(selector + '{' + rule + '}', rulesLen);
+                }
+            }
         });
-    });
-});
+    };
+})(jQuery);
+jQuery(window).load(menuExtendedCreate);
 
 jQuery(function ($) {
     'use strict';
@@ -1195,22 +1271,6 @@ jQuery(function () {
 if (typeof window.resizeData === 'undefined') window.resizeData = {};
 window.resizeData.headerPageWidth = true;
 if (typeof window.defaultResponsiveData === 'undefined') window.defaultResponsiveData = [false, true, true, true, true, ];
-
-resizeData['object2039716632'] = {
-   responsive: [
-                  { left: 0.5, top: 0.5, visible: true }, 
-                  { left: 0.5, top: 0.5, visible: true }, 
-                  { left: 0.5, top: 0.5, visible: true }, 
-                  { left: 0.5, top: 0.5, visible: true }, 
-                  { left: 0.5, top: 0.5, visible: true }, 
-               ],
-   area: {
-       x: 0,
-       y: 0
-   },
-   width: 550,
-   height: 90,
-   autoWidth: false};
 
 // used to apply compicated values in style like '!important!
 function applyCss(object, param, value) {
